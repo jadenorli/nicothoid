@@ -1,0 +1,11 @@
+---
+title: "manuscript_one"
+author: "Jaden Orli"
+date: "2024-01-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
