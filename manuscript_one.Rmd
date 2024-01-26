@@ -8,21 +8,16 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-
-library(tidyverse)
-library(janitor)
 library(RColorBrewer)
 library(caret)
 library(ggpubr)
-library(MASS)
-library(lme4)
-library(kableExtra)
 library(rcompanion)
 library(magrittr)
 library(magick)
 library(patchwork)
 library(kableExtra)
 library(webshot2)
+library(devtools)
 source("my_functions.R")
 setup_libs()
 
@@ -215,7 +210,7 @@ nico_egg_df_avg <- nico_egg_df %>%
 
 
 #create a dataframe with the table_one data 
-table_one_df = data.frame(
+table_one = data.frame(
   "Species" = c(rep("C. anthonyi", 2), rep("C. productus", 2), rep("C. anntenarius", 2)), 
   "Sex" = c("Females", "Males", "Females", "Males", "Females", "Males"),
   "Prevalence Infested" = c("100% <br> (n = 52)", "83% <br> (n = 12)", "86% <br> (n = 7)", "80% <br> (n = 5)", "100%  <br> (n = 3)", "100% <br> (n = 7)"),
@@ -256,7 +251,7 @@ adult_timeseries <- ggplot() +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) + 
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.title.y = element_text(size = 5, face = "bold"),
+        axis.title.y = element_text(size = 8, face = "bold"),
         axis.title.x = element_text(size = 8, face = "bold"),
         axis.text = element_text(size = 5))
 
@@ -281,7 +276,7 @@ larvae_timeseries <- ggplot() +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) +
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.title.y = element_text(size = 5, face = "bold"),
+        axis.title.y = element_text(size = 8, face = "bold"),
         axis.title.x = element_text(size = 8, face = "bold"),
         axis.text = element_text(size = 5))
 
@@ -306,7 +301,7 @@ total_nicos_timeseries <- ggplot() +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) + 
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.title.y = element_text(size = 5, face = "bold"),
+        axis.title.y = element_text(size = 8, face = "bold"),
         axis.title.x = element_text(size = 8, face = "bold"),
         axis.text = element_text(size = 5))
 
@@ -331,7 +326,7 @@ nico_egg_timeseries <- ggplot() +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) +
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
-        axis.title.y = element_text(size = 5, face = "bold"),
+        axis.title.y = element_text(size = 8, face = "bold"),
         axis.title.x = element_text(size = 8, face = "bold"),
         axis.text = element_text(size = 5))
 
@@ -362,26 +357,27 @@ publication_timeseries
 ## B) Table
 ```{r}
 #assign column names for table one
-colnames(table_one_df) <- c("Species", "Sex", "Prevalence Infested", "Prevalence with Adults <br> in Egg Mass", "Mean Density of Nicothoid <br> Eggs in Host Eggs", "Mean Density of <br> Larvae in Host Eggs", "Mean Density of Adults <br> in Host Eggs", "Mean Density of <br> Larvae in Gills")
+colnames(table_one) <- c("Species", "Sex", "Prevalence Infested", "Prevalence with Adults <br> in Egg Mass", "Mean Density of Nicothoid <br> Eggs in Host Eggs", "Mean Density of <br> Larvae in Host Eggs", "Mean Density of Adults <br> in Host Eggs", "Mean Density of <br> Larvae in Gills")
 
 #create the table 
-final_table_one <- table_one_df %>%
-  kable(html_font = "Times New Roman", 
-      digits = 0,
-      align = "c",
-      booktabs = T, 
-      escape = F) %>%
-  kable_styling(latex_options = c("striped","hold_position", html_font = "Times New Roman", full_width = F, font_size = 10)) %>%
+final_table_one <- table_one %>%
+  kable(format = "html",
+        html_font = "Times New Roman",
+        digits = 0,
+        align = "c",
+        booktabs = T, 
+        escape = F) %>%
+  kable_styling(bootstrap_options = c("striped","hold_position")) %>%
   column_spec(1, italic = T, extra_css = "border-bottom: 1px solid;") %>%
   row_spec(2, extra_css = "border-bottom: 1px solid;") %>%
   row_spec(4, extra_css = "border-bottom: 1px solid;") %>%
   collapse_rows(columns = 1, valign = "middle") %>%
-  column_spec(2, italic = F) %>%
   kable_classic_2(full_width = F, html_font = "Times New Roman", font_size = 8) %>%
-  save_kable(file = "figures/final_table_one.png", 
+  save_kable(file = "figures/final_table_one.png",
              zoom = 3)
 
 final_table_one
 
 ```
+
 
