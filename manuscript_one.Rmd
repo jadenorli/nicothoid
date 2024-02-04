@@ -28,197 +28,198 @@ setup_libs()
 
 ## A) Read in CSVs
 ```{r}
-#read in the new autoinfection data 
-new_autoinfection <- read_csv("raw_data/autoinfection_new_first.csv") %>% 
+#read in the first life cycle counts
+counts_1 <- read_csv("raw_data/counts_1.csv") %>%
   clean_names() %>%
-  dplyr::select(!12) %>%
-  dplyr::select(!14:16) %>%
-  rename(eds = egg_development_stage) %>%
   filter(!eds == "M") %>%
-  mutate_at(9, as.numeric) %>%
-  mutate_at(10, as.numeric) %>%
-  filter(!experiment_id == "Autoinfection-005") %>%
-  filter(!total_number_of_eggs == 0) %>%
-  mutate(color = case_when(eds %in% c("A", "B", "C") ~ "gold1",
-                           eds %in% c("D", "E", "F") ~ "darkgoldenrod1",
-                           eds %in% c("G", "H", "I") ~ "coral2",
-                           eds %in% c("J", "K", "L", "M") ~ "brown4"))
+  mutate_at(8, as.numeric) 
 
-
-#read in the egg mortality data that has development days
-egg_mortality_day <- read_csv("raw_data/eggmortality_day2.csv") %>% 
+#read in the second life cycle counts
+##this is the data that contains larval counts 
+counts_2 <- read_csv("raw_data/counts_2.csv") %>% 
   clean_names() %>%
-  dplyr::select(!17:19) %>% 
   filter(!is.na(pleopod_number)) %>%
   filter(!is.na(day)) %>%
-  filter(!eds == "M") %>%
-  mutate_at(11, as.numeric) %>%
-  mutate(prop_viable_eggs = number_viable_crab_eggs/total_number_crab_eggs) %>% 
-  mutate(prop_nonviable_eggs = total_number_non_viable_crab_eggs/total_number_crab_eggs) %>%
-  mutate(total_nicos = (number_adult_nicos + number_juvenile_nicos))  %>%
-  mutate(color = case_when(eds %in% c("A", "B", "C") ~ "gold1",
-                           eds %in% c("D", "E", "F") ~ "darkgoldenrod1",
-                           eds %in% c("G", "H", "I") ~ "coral2",
-                           eds %in% c("J", "K", "L", "M") ~ "brown4"))
+  filter(!eds == "M")
+  
+#read in the metadata
+metadata <- read_csv("raw_data/metadata.csv") %>%
+  clean_names() %>%
+  filter(!analysis_status %in% "exclude") %>%
+  mutate(nico_present = case_when(nico_location %in% c("egg_mass", "gills", "both") ~ "yes",
+                                 nico_location == "neither" ~ "no"))
 
-#read in the data for table one
-table_one <- read_csv("raw_data/table_one.csv") %>% 
-  clean_names() 
+#read in the dissection data
+dissections <- read_csv("raw_data/dissections.csv") %>% 
+  clean_names() %>%
+  filter(!analysis_status %in% "exclude") %>%
+  dplyr::select(!8:9) 
 
 ```
 
 ## B) Create Dataframes
 ```{r}
-#make a dataframe with the autoinfection data combined with the egg mortality day data
-adult_counts_new <- new_autoinfection %>% 
-  dplyr::select(experiment_id, crab_id, day, eds, number_of_adult_copepods, number_of_nemerteans, total_number_of_eggs, number_of_copepod_eggs) %>% 
-  rename(number_adult_nicos =  number_of_adult_copepods,
-         total_number_crab_eggs = total_number_of_eggs,
-         number_nico_eggs = number_of_copepod_eggs) %>% 
-  full_join(., egg_mortality_day) %>% 
-  dplyr::select(experiment_id, crab_id, day, eds, number_adult_nicos, number_of_nemerteans, total_number_crab_eggs, number_nico_eggs) %>% 
-  rename(adult_nicos = number_adult_nicos,
-         nemerteans = number_of_nemerteans, 
-         crab_eggs = total_number_crab_eggs,
-         nico_eggs = number_nico_eggs)
+#make a dataframe with the count data (count_1 and count_2) combined 
+com_counts <- counts_1 %>%
+  dplyr::select(trial_id, crab_id, eds, day, crab_eggs, adult_nicos, nico_eggs, nemerteans) %>%
+  full_join(., counts_2) %>%
+  dplyr::select(trial_id, crab_id, eds, day, crab_eggs, adult_nicos, nico_eggs, nemerteans) 
 
-#create a dataframe with the proportion of adult nicos 
-adult_all_new <- adult_counts_new %>%
-  mutate(prop_adults = (adult_nicos/crab_eggs)) %>%
-  mutate(prop_adults_alone = adult_nicos/crab_eggs) %>%
-  mutate(scaled_adults = prop_adults_alone*1000000) %>%
+
+#create a dataframe 
+##with the density of adult nicos per host egg for each sample and the density of nico eggs per host egg for each sample
+##scale these densities by one million to represent the density of adult nicos per one million host eggs in a brood
+##group days of three into groups 1 through 15
+com_counts_new <- com_counts %>%
+  mutate(den_adults_sample = adult_nicos/crab_eggs) %>%
+  mutate(den_adults_sample_brood = den_adults_sample*1000000) %>%
+  mutate(den_nico_eggs_sample = nico_eggs/crab_eggs) %>%
+  mutate(den_nico_eggs_sample_brood = den_nico_eggs_sample*1000000) %>%
+  mutate(group = case_when(day %in% 1:3 ~ "1",
+                           day %in% 4:6 ~ "2",
+                           day %in% 7:9 ~ "3",
+                           day %in% 10:12 ~ "4",
+                           day %in% 13:15 ~ "5",
+                           day %in% 16:18 ~ "6",
+                           day %in% 19:21 ~ "7",
+                           day %in% 22:24 ~ "8",
+                           day %in% 25:27 ~ "9",
+                           day %in% 28:30 ~ "10",
+                           day %in% 31:33 ~ "11",
+                           day %in% 34:36 ~ "12",
+                           day %in% 37:39 ~ "13",
+                           day %in% 40:42 ~ "14",
+                           day %in% 43:45 ~ "15")) %>%
   as_tibble()
 
-#create a dataframe with the average number, max number, and min number of adults per day per one million host eggs
-adult_all_avg_new_day <- adult_all_new %>%
-  group_by(day) %>%
-  summarize(avg_prop_adults = mean(prop_adults_alone),
-            max_prop_adults = max(prop_adults_alone),
-            min_prop_adults = min(prop_adults_alone),
-            sd_prop_adults = sd(prop_adults_alone)) %>%
-  mutate(scaled_adults = avg_prop_adults*1000000) %>%
-  mutate(max_scaled_adults = max_prop_adults*1000000) %>%
-  mutate(min_scaled_adults = min_prop_adults*1000000) %>%
-  mutate(sd_scaled_adults = sd_prop_adults*1000000) %>%
-  mutate_at("sd_scaled_adults", ~replace_na(.,0)) %>% 
-  mutate(max_sd = (scaled_adults + sd_scaled_adults)) %>%
-  mutate(min_sd = (scaled_adults - sd_scaled_adults)) %>%
-  mutate_at("min_sd", ~replace(., min_sd < 0, 0))%>%
-  as_tibble()
-
-
-#create a dataframe which has the proportion of the life stage per the number of crab eggs in the sample then times 1000 (scaled) 
-total_df <- egg_mortality_day %>%
-  mutate(prop_adults_sample = (number_adult_nicos/total_number_crab_eggs)*1000) %>%
-  mutate(prop_juveniles_sample = (number_juvenile_nicos/total_number_crab_eggs)*1000) %>%
-  mutate(prop_nico_eggs_sample = (number_nico_eggs/total_number_crab_eggs)*1000) %>%
-  mutate(prop_total_nicos_sample = (total_nicos/total_number_crab_eggs)*1000) %>%
-  mutate(prop_adults_alone = number_adult_nicos/total_number_crab_eggs) %>%
-  mutate(prop_juveniles_alone = number_juvenile_nicos/total_number_crab_eggs) %>%
-  mutate(prop_total_nicos_alone = total_nicos/total_number_crab_eggs) %>%
-  mutate(prop_nico_eggs_alone = number_nico_eggs/total_number_crab_eggs) %>%
-  mutate(scaled_adults = prop_adults_alone*1000000) %>%
-  mutate(scaled_juveniles = prop_juveniles_alone*1000000) %>%
-  mutate(scaled_total_nicos = prop_total_nicos_alone*1000000) %>%
-  mutate(scaled_nico_eggs = prop_nico_eggs_alone*1000000) %>%
-  mutate(scaled_viable_eggs = prop_viable_eggs*1000000) %>%
-  mutate(scaled_nonviable_eggs = prop_nonviable_eggs*1000000) %>%
-  as_tibble()
-
-##create a dataframe with the averages from the above dataframe 
-total_df_avg <- total_df %>%
-  mutate(prop_adults_alone = number_adult_nicos/total_number_crab_eggs) %>%
-  mutate(prop_juveniles_alone = number_juvenile_nicos/total_number_crab_eggs) %>%
-  mutate(prop_total_nicos_alone = total_nicos/total_number_crab_eggs) %>%
-  mutate(prop_nico_eggs_alone = number_nico_eggs/total_number_crab_eggs) %>%
-  group_by(day) %>%
-  summarize(avg_prop_adults = mean(prop_adults_alone),
-            max_prop_adults = max(prop_adults_alone),
-            min_prop_adults = min(prop_adults_alone),
-            sd_prop_adults = sd(prop_adults_alone),
-            avg_prop_juveniles = mean(prop_juveniles_alone),
-            max_prop_juveniles = max(prop_juveniles_alone),
-            min_prop_juveniles = min(prop_juveniles_alone),
-            sd_prop_juveniles = sd(prop_juveniles_alone),
-            avg_prop_total_nicos = mean(prop_total_nicos_alone),
-            max_prop_total_nicos = max(prop_total_nicos_alone),
-            min_prop_total_nicos = min(prop_total_nicos_alone),
-            sd_prop_total_nicos = sd(prop_total_nicos_alone),
-            avg_prop_nico_eggs = mean(prop_nico_eggs_alone),
-            max_prop_nico_eggs = max(prop_nico_eggs_alone),
-            min_prop_nico_eggs = min(prop_nico_eggs_alone),
-            sd_prop_nico_eggs = sd(prop_nico_eggs_alone),
-            avg_prop_viable_eggs = mean(prop_viable_eggs),
-            max_prop_viable_eggs = max(prop_viable_eggs),
-            min_prop_viable_eggs = min(prop_viable_eggs),
-            sd_prop_viable_eggs = sd(prop_viable_eggs),
-            avg_prop_nonviable_eggs = mean(prop_nonviable_eggs),
-            max_prop_nonviable_eggs = max(prop_nonviable_eggs),
-            min_prop_nonviable_eggs = min(prop_nonviable_eggs),
-            sd_prop_nonviable_eggs = sd(prop_nonviable_eggs)) %>%
-  mutate(scaled_adults = avg_prop_adults*1000000) %>%
-  mutate(max_scaled_adults = max_prop_adults*1000000) %>%
-  mutate(min_scaled_adults = min_prop_adults*1000000) %>%
-  mutate(sd_scaled_adults = sd_prop_adults*1000000) %>%
-  mutate(scaled_juveniles = avg_prop_juveniles*1000000) %>%
-  mutate(max_scaled_juveniles = max_prop_juveniles*1000000) %>%
-  mutate(min_scaled_juveniles = min_prop_juveniles*1000000) %>% 
-  mutate(sd_scaled_juveniles = sd_prop_juveniles*1000000) %>%
-  mutate(scaled_total_nicos = avg_prop_total_nicos*1000000) %>%
-  mutate(max_scaled_total_nicos = max_prop_total_nicos*1000000) %>%
-  mutate(min_scaled_total_nicos = min_prop_total_nicos*1000000) %>%
-  mutate(sd_scaled_total_nicos = sd_prop_total_nicos*1000000) %>%
-  mutate(scaled_nico_eggs = avg_prop_nico_eggs*1000000) %>%
-  mutate(max_scaled_nico_eggs = max_prop_nico_eggs*1000000) %>%
-  mutate(min_scaled_nico_eggs = min_prop_nico_eggs*1000000) %>% 
-  mutate(sd_scaled_nico_eggs = sd_prop_nico_eggs*1000000) %>%
-  mutate(scaled_prop_viable_eggs = avg_prop_viable_eggs*1000000) %>%
-  mutate(max_scaled_prop_viable_eggs = max_prop_viable_eggs*1000000) %>%
-  mutate(min_scaled_prop_viable_eggs = min_prop_viable_eggs*1000000) %>% 
-  mutate(sd_scaled_prop_viable_eggs = sd_prop_viable_eggs*1000000) %>%
-  mutate(scaled_prop_nonviable_eggs = avg_prop_nonviable_eggs*1000000) %>%
-  mutate(max_scaled_prop_nonviable_eggs = max_prop_nonviable_eggs*1000000) %>%
-  mutate(min_scaled_prop_nonviable_eggs = min_prop_nonviable_eggs*1000000) %>% 
-  mutate(sd_scaled_prop_nonviable_eggs = sd_prop_nonviable_eggs*1000000) %>%
-  mutate_at(c(1:49), ~replace(., is.na(.), 0)) %>%
-  as_tibble()
-
-#create a dataframe with the proportion of nico eggs per 1000 host eggs for all samples
-nico_egg_df <- adult_counts_new %>%
-  mutate(prop_nico_eggs = (nico_eggs/crab_eggs)) %>%
-  mutate(prop_nico_eggs_alone = nico_eggs/crab_eggs) %>%
-  mutate(scaled_nico_eggs = prop_nico_eggs_alone*1000000) %>%
-  as_tibble()
-
-#create a dataframe with the average nico eggs per 1000 host eggs for all samples
-nico_egg_df_avg <- nico_egg_df %>%
-  group_by(eds) %>%
-  summarize(avg_prop_nico_eggs = mean(prop_nico_eggs),
-            max_prop_nico_eggs = max(prop_nico_eggs),
-            min_prop_nico_eggs = min(prop_nico_eggs),
-            sd_prop_nico_eggs = sd(prop_nico_eggs),
-            day = mean(day)) %>% 
-  mutate(scaled_nico_eggs = avg_prop_nico_eggs*1000000) %>%
-  mutate(max_scaled_nico_eggs = max_prop_nico_eggs*1000000) %>%
-  mutate(min_scaled_nico_eggs = min_prop_nico_eggs*1000000) %>%
-  mutate(sd_scaled_nico_eggs = sd_prop_nico_eggs*1000000) %>%
-  mutate_at(c(2:6), ~replace(., is.na(.), 0)) %>%
-  mutate(max_sd = (scaled_nico_eggs + sd_scaled_nico_eggs)) %>%
-  mutate(min_sd = (scaled_nico_eggs - sd_scaled_nico_eggs)) %>%
-  mutate_at("min_sd", ~replace(., min_sd < 0, 0))%>%
+#create a dataframe 
+##with the density of larval nicos per host egg for each sample, the density of total feeding nicos (larvae + adults) per host egg for each sample, the density of adult nicos per host egg for each sample, and the density of nico eggs per host egg for each sample
+##scale these densities by one million to represent the density of adult nicos per one million host eggs in a brood
+##group days of three into groups 1 through 15
+tot_counts_new <- counts_2 %>%
+  mutate(total_nicos = adult_nicos+larval_nicos) %>%
+  mutate(den_total_nicos_sample = total_nicos/crab_eggs) %>%
+  mutate(den_total_nicos_sample_brood  = den_total_nicos_sample*1000000) %>%
+  mutate(den_larvae_sample = larval_nicos/crab_eggs) %>%
+  mutate(den_larvae_sample_brood = den_larvae_sample*1000000) %>%
+  mutate(den_adults_sample = adult_nicos/crab_eggs) %>%
+  mutate(den_adults_sample_brood = den_adults_sample*1000000) %>%
+  mutate(den_nico_eggs_sample = nico_eggs/crab_eggs) %>%
+  mutate(den_nico_eggs_sample_brood = den_nico_eggs_sample*1000000) %>%
+  mutate(group = case_when(day %in% 1:3 ~ "1",
+                           day %in% 4:6 ~ "2",
+                           day %in% 7:9 ~ "3",
+                           day %in% 10:12 ~ "4",
+                           day %in% 13:15 ~ "5",
+                           day %in% 16:18 ~ "6",
+                           day %in% 19:21 ~ "7",
+                           day %in% 22:24 ~ "8",
+                           day %in% 25:27 ~ "9",
+                           day %in% 28:30 ~ "10",
+                           day %in% 31:33 ~ "11",
+                           day %in% 34:36 ~ "12",
+                           day %in% 37:39 ~ "13",
+                           day %in% 40:42 ~ "14",
+                           day %in% 43:45 ~ "15")) %>%
   as_tibble()
 
 
-#create a dataframe with the table_one data 
-table_one = data.frame(
-  "Species" = c(rep("C. anthonyi", 2), rep("C. productus", 2), rep("C. anntenarius", 2)), 
-  "Sex" = c("Females", "Males", "Females", "Males", "Females", "Males"),
-  "Prevalence Infested" = c("100% <br> (n = 52)", "83% <br> (n = 12)", "86% <br> (n = 7)", "80% <br> (n = 5)", "100%  <br> (n = 3)", "100% <br> (n = 7)"),
-  "Prevalence with Adults in Egg Mass"= c("100% <br> (n = 52)", NA, "100% <br>(n = 3)", NA, "100% <br>(n = 3)", NA),
-  "Mean Density of Nicothoid Eggs in Host Eggs" = c("1570.6 ± 2411.3 <br> (n = 27)", NA, NA, NA, NA, NA),
-  "Mean Density of Larvae in Host Eggs" = c("*282.2 ± 440.7 <br> (n = 27)", NA, NA, NA, NA, NA),
-  "Mean Density of Adults in Host Eggs" = c("*3.8 ± 6.3 <br> (n = 41)", NA, NA, NA, NA, NA),
-  "Mean Density of Larvae in Gills" = c("14966 ± 22175 <br> (n = 18)", "235 ± 373 <br> (n = 10)", "24 ± 32 <br> (n = 3)", "63 ± 64 <br> (n = 4)", "5120 ± 5741 <br> (n = 3)", "60 ± 40 <br> (n = 5)"))
+#create a dataframe 
+##group the data by group (three days)
+##for each group calculate the mean of the densities of adult nicos per host egg for each sample taken at that period in host development
+##scale this mean density by one million to represent the density of adult nicos per one million host eggs in a brood at this developmental day
+#calculate the mean developmental day for samples taken for that group
+adult_counts_avg <- com_counts_new %>%
+  group_by(group) %>%
+  summarize(avg_den_adults_sample = mean(den_adults_sample),
+            avg_day_sample = mean(day)) %>%
+  mutate(avg_den_adults_sample_brood = avg_den_adults_sample*1000000) %>%
+  as_tibble()
+
+#create a dataframe 
+##group the data by group (three days)
+##for each group calculate the mean of the densities of nico eggs per host egg for each sample taken at that period in host development
+##scale this mean density by one million to represent the density of nico eggs  per one million host eggs in a brood at this developmental day
+#calculate the mean developmental day for samples taken for that group
+nico_egg_counts_avg <- com_counts_new %>%
+  group_by(group) %>%
+  summarize(avg_den_nico_eggs_sample = mean(den_nico_eggs_sample),
+            avg_day_sample = mean(day)) %>%
+  mutate(avg_den_nico_eggs_sample_brood = avg_den_nico_eggs_sample*1000000) %>%
+  as_tibble()
+
+#create a dataframe 
+##group the data by group (three days)
+##for each group calculate the mean of the densities of larval nicos per host egg for each sample taken at that period in host development
+##scale this mean density by one million to represent the density of larval nicos per one million host eggs in a brood at this developmental day
+#calculate the mean developmental day for samples taken for that group
+larvae_counts_avg <- tot_counts_new %>%
+  group_by(group) %>%
+  summarize(avg_den_larvae_sample = mean(den_larvae_sample),
+            avg_day_sample = mean(day)) %>%
+  mutate(avg_den_larvae_sample_brood  = avg_den_larvae_sample*1000000) %>%
+  as_tibble()
+
+#create a dataframe 
+##group the data by group (three days)
+##for each group calculate the mean of the densities of total nicos per host egg for each sample taken at that period in host development
+##scale this mean density by one million to represent the density of total nicos per one million host eggs in a brood at this developmental day
+#calculate the mean developmental day for samples taken for that group
+total_counts_avg <- tot_counts_new %>%
+  group_by(group) %>%
+  summarize(avg_den_total_nicos_sample = mean(den_total_nicos_sample),
+            avg_day_sample = mean(day)) %>%
+  mutate(avg_den_total_nicos_sample_brood  = avg_den_total_nicos_sample*1000000) %>%
+  as_tibble()
+
+#create a dataframe grouping the data by crab id from the counts_2 dataset
+##for each crab id sum up the total number of larvae from all the samples for that crab id and sum up the total number of nico eggs from all the samples for that crab id
+##for each crab id sum up the total number of eggs search from all the samples for that crab id
+##for each crab id calculate the density of larval nicos per host egg per sample 
+crab_id_tot <- tot_counts_new %>%
+  group_by(crab_id) %>% 
+  summarise(total_larvae = sum(larval_nicos),
+            total_nico_eggs = sum(nico_eggs),
+            eggs_searched = sum(crab_eggs)) %>%
+  mutate(den_larvae_crab = total_larvae/eggs_searched) %>%
+  mutate(den_larvae_crab_1000 = den_larvae_crab*1000) %>%
+  mutate(den_nico_eggs_crab = total_nico_eggs/eggs_searched) %>%
+  mutate(den_nico_eggs_crab_1000 = den_nico_eggs_crab*1000) %>%
+  as_tibble()
+
+
+#create a dataframe grouping the data by crab id from the counts_2 dataset
+##for each crab id sum up the total number of adult nicos from all the samples for that crab id and sum up the total number of nico eggs from all the samples for that crab id
+##for each crab id sum up the total number of eggs search from all the samples for that crab id
+crab_id_com <- com_counts_new %>%
+  group_by(crab_id) %>% 
+  summarise(total_adults = sum(adult_nicos),
+            total_nico_eggs = sum(nico_eggs),
+            eggs_searched = sum(crab_eggs)) %>%
+  mutate(den_adults_crab = total_adults/eggs_searched) %>%
+  mutate(den_adults_crab_1000 = den_adults_crab*1000) %>%
+  mutate(den_nico_eggs_crab = total_nico_eggs/eggs_searched) %>%
+  mutate(den_nico_eggs_crab_1000 = den_nico_eggs_crab*1000) %>%
+  as_tibble()
+
+
+#create a dataframe from the dissections with the number of larvae scaled for 12 gills in the crab
+gill_density <- dissections %>%
+  mutate(scaled_nicos = nico_count*12) %>%
+  group_by
+
+
+#create a dataframe from the metadata with a subset for Cancer anthonyi only 
+anthonyi <- metadata %>%
+  filter(species == "cancer_anthonyi")
+
+#create a dataframe from the metadata with a subset for Cancer productus only 
+productus <- metadata %>%
+  filter(species == "cancer_productus")
+
+#create a dataframe from the metadata with a subset for Cancer antennarius only 
+antennarius <- metadata %>%
+  filter(species == "cancer_antennarius")
 
 
 ```
@@ -232,30 +233,262 @@ publication_2 = "lightcyan3"
 ```
 
 
-#2. Publication Figures
+#2. Analysis
+
+
+## A) Metadata
+
+### i) Cancer anthonyi
+```{r}
+#calculate the total number of female Cancer anthonyi 
+tot_ant <- nrow(anthonyi[anthonyi$sex == "F",])
+tot_ant
+
+#calculate the number of females with nicos present
+ant_inf <- nrow(anthonyi[anthonyi$sex == "F" &
+                anthonyi$nico_present == "yes",])
+
+#calculate the prevalence of females with nicothoids present as a percentage
+prev_ant_inf <- (ant_inf/tot_ant)*100
+prev_ant_inf
+
+#calculate the total number of male Cancer anthonyi 
+tot_mant <- nrow(anthonyi[anthonyi$sex == "M",])
+tot_mant
+
+#calculate the number of females with nicos present
+mant_inf <-nrow(anthonyi[anthonyi$sex == "M" &
+                anthonyi$nico_present == "yes",])
+
+#calculate the prevalence of males with nicothoids present as a percentage
+prev_mant_inf <- (mant_inf/tot_mant)*100
+prev_mant_inf
+
+```
+
+
+### ii) Cancer productus
+```{r}
+#calculate the total number of female Cancer productus 
+tot_pro <- nrow(productus[productus$sex == "F",])
+tot_pro
+
+#calculate the number of females with nicos present
+pro_inf <- nrow(productus[productus$sex == "F" &
+                productus$nico_present == "yes",])
+
+#calculate the prevalence of females with nicothoids present as a percentage
+prev_pro_inf <- (pro_inf/tot_pro)*100
+prev_pro_inf
+
+#calculate the total number of male Cancer productus 
+tot_mpro <- nrow(productus[productus$sex == "M",])
+tot_mpro
+
+#calculate the number of females with nicos present
+mpro_inf <-nrow(productus[productus$sex == "M" &
+                productus$nico_present == "yes",])
+
+#calculate the prevalence of males with nicothoids present as a percentage
+prev_mpro_inf <- (mpro_inf/tot_mpro)*100
+prev_mpro_inf
+
+```
+
+
+### ii) Cancer antennarius
+```{r}
+#calculate the total number of female Cancer antennarius 
+tot_ats <- nrow(antennarius[antennarius$sex == "F",])
+tot_ats
+
+#calculate the number of females with nicos present
+ats_inf <- nrow(antennarius[antennarius$sex == "F" &
+                antennarius$nico_present == "yes",])
+
+#calculate the prevalence of females with nicothoids present as a percentage
+prev_ats_inf <- (ats_inf/tot_ats)*100
+prev_ats_inf
+
+#calculate the total number of male Cancer antennarius 
+tot_mats <- nrow(antennarius[antennarius$sex == "M",])
+tot_mats
+
+#calculate the number of females with nicos present
+mats_inf <-nrow(antennarius[antennarius$sex == "M" &
+                antennarius$nico_present == "yes",])
+
+#calculate the prevalence of males with nicothoids present as a percentage
+prev_mats_inf <- (mats_inf/tot_mats)*100
+prev_mats_inf
+
+```
+
+
+## B) Gills
+
+### i) Cancer anthonyi
+```{r}
+#subset the data for female Cancer anthonyi
+ant_gills <- gill_density %>%
+  filter(species == "cancer_anthonyi") %>%
+  filter(sex == "female") 
+
+##calculate the mean density of larvae in the gills of female Cancer anthonyi 
+ant_gills_mean <-mean(ant_gills$scaled_nicos)
+ant_gills_mean
+
+##calculate the standard deviation of the density of larvae in the gills of female Cancer anthonyi 
+ant_gills_sd <-sd(ant_gills$scaled_nicos)
+ant_gills_sd
+
+#subset the data for male Cancer anthonyi
+mant_gills <- gill_density %>%
+  filter(species == "cancer_anthonyi") %>%
+  filter(sex == "male") 
+
+##calculate the mean density of larvae in the gills of female Cancer anthonyi 
+mant_gills_mean <-mean(mant_gills$scaled_nicos)
+mant_gills_mean
+
+##calculate the standard deviation of the density of larvae in the gills of female Cancer anthonyi 
+mant_gills_sd <-sd(mant_gills$scaled_nicos)
+mant_gills_sd
+
+```
+
+
+### ii) Cancer productus
+```{r}
+#subset the data for female Cancer productus
+pro_gills <- gill_density %>%
+  filter(species == "cancer_productus") %>%
+  filter(sex == "female") 
+
+##calculate the mean density of larvae in the gills of female Cancer productus 
+pro_gills_mean <-mean(pro_gills$scaled_nicos)
+pro_gills_mean
+
+##calculate the standard deviation of the density of larvae in the gills of female Cancer productus 
+pro_gills_sd <-sd(pro_gills$scaled_nicos)
+pro_gills_sd
+
+#subset the data for male Cancer productus
+mpro_gills <- gill_density %>%
+  filter(species == "cancer_productus") %>%
+  filter(sex == "male") 
+
+##calculate the mean density of larvae in the gills of female Cancer productus 
+mpro_gills_mean <-mean(mpro_gills$scaled_nicos)
+mpro_gills_mean
+
+##calculate the standard deviation of the density of larvae in the gills of female Cancer productus 
+mpro_gills_sd <-sd(mpro_gills$scaled_nicos)
+mpro_gills_sd
+
+```
+
+
+
+### iii) Cancer antennarius
+```{r}
+#subset the data for female Cancer antennarius
+ats_gills <- gill_density %>%
+  filter(species == "cancer_antennarius") %>%
+  filter(sex == "female") 
+
+##calculate the mean density of larvae in the gills of female Cancer antennarius 
+ats_gills_mean <-mean(ats_gills$scaled_nicos)
+ats_gills_mean
+
+##calculate the standard deviation of the density of larvae in the gills of female Cancer antennarius 
+ats_gills_sd <-sd(ats_gills$scaled_nicos)
+ats_gills_sd
+
+#subset the data for male Cancer antennarius
+mats_gills <- gill_density %>%
+  filter(species == "cancer_antennarius") %>%
+  filter(sex == "male") 
+
+##calculate the mean density of larvae in the gills of female Cancer antennarius 
+mats_gills_mean <-mean(mats_gills$scaled_nicos)
+mats_gills_mean
+
+##calculate the standard deviation of the density of larvae in the gills of female Cancer antennarius 
+mats_gills_sd <-sd(mats_gills$scaled_nicos)
+mats_gills_sd
+
+```
+
+## C) Egg Mass (Cancer anthonyi)
+
+### i) Adults
+```{r}
+#calculate the mean and sd from the combined data
+##find the mean density of adult nicothoids in the egg mass 
+mean_adults <- mean(crab_id_com$den_adults_crab_1000)
+mean_adults
+
+##find the sd of adult nicothoids in the egg mass 
+sd_adults <- sd(crab_id_com$den_adults_crab_1000)
+sd_adults
+
+```
+
+
+### ii) Larvae
+```{r}
+#calculate the mean and sd from the combined data
+##find the mean density of larval nicothoids in the egg mass 
+mean_larvae <- mean(crab_id_tot$den_larvae_crab_1000)
+mean_larvae
+
+##find the sd of larval nicothoids in the egg mass 
+sd_larvae <- sd(crab_id_tot$den_larvae_crab_1000)
+sd_larvae
+
+```
+
+
+### iii) Nico Eggs
+```{r}
+#calculate the mean and sd from the combined data
+##find the mean density of nicothoid eggs in the egg mass 
+mean_nico_eggs <- mean(crab_id_com$den_nico_eggs_crab_1000)
+mean_nico_eggs
+
+##find the sd of nicothoid eggs in the egg mass 
+sd_nico_eggs <- sd(crab_id_com$den_nico_eggs_crab_1000)
+sd_nico_eggs
+
+```
+
+
+
+#3. Publication Figures
 
 ## A) Timseseries
 
 ### i) Adults
 ```{r}
-#plot the number of adults over time per 1000 host eggs
+#plot the denisty of adult nicothoids per host egg per sample scaled for one million host eggs over time
 adult_timeseries <- ggplot() +
-  geom_point(data = adult_all_new,
-            aes(x = day, y = scaled_adults), color = publication, size = 0.75) +
-  geom_line(data = adult_all_avg_new_day,
-            aes(x = day, y = scaled_adults)) +
+  geom_point(data = com_counts_new,
+            aes(x = day, y = den_adults_sample_brood), color = publication, size = 0.75) +
+  geom_line(data = adult_counts_avg,
+            aes(x = avg_day_sample, y = avg_den_adults_sample_brood)) +
   theme_classic() +
-  labs(y = "Adult Nicothoids per One Million Crab Eggs") +
+  labs(y = "Adult Nicothoid Density") +
   scale_x_continuous(name = "Development Day",
-                     breaks = seq(0, max(adult_all_new$day), by = 2), 0) +
+                     breaks = seq(0, max(com_counts_new$day), by = 2), 0) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) + 
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
         axis.title.y = element_text(size = 8, face = "bold"),
         axis.title.x = element_text(size = 8, face = "bold"),
-        axis.text = element_text(size = 5))
+        axis.text = element_text(size = 5)) 
 
-adult_timeseries
+adult_timeseries 
 
 ```
 
@@ -263,16 +496,16 @@ adult_timeseries
 
 ### ii) Larvae
 ```{r}
-#plot the number of juvniles over time per one million host eggs
+#plot the denisty of larval nicothoids per host egg per sample scaled for one million host eggs over time
 larvae_timeseries <- ggplot() +
-  geom_point(data = total_df,
-            aes(x = day, y = scaled_juveniles), color = publication, size = 0.75) +
-  geom_line(data = total_df_avg,
-            aes(x = day, y = scaled_juveniles)) +
+  geom_point(data = tot_counts_new,
+            aes(x = day, y = den_larvae_sample_brood), color = publication, size = 0.75) +
+  geom_line(data = larvae_counts_avg,
+            aes(x = avg_day_sample, y = avg_den_larvae_sample_brood)) +
   theme_classic() +
-  labs(y = "Larval Nicothoids per One Million Crab Eggs") +
+  labs(y = "Larval Nicothoid Density") +
   scale_x_continuous(name = "Development Day",
-                     breaks = seq(0, max(total_df$day), by = 2)) +
+                     breaks = seq(0, max(tot_counts_new$day), by = 2)) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) +
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
@@ -288,16 +521,16 @@ larvae_timeseries
 
 ### iii) Total Nicos
 ```{r}
-#plot the number of juvniles over time per one million host eggs
+#plot the denisty of total nicothoids per host egg per sample scaled for one million host eggs over time
 total_nicos_timeseries <- ggplot() +
-  geom_point(data = total_df,
-            aes(x = day, y = scaled_total_nicos), color = publication, size = 0.75) +
-  geom_line(data = total_df_avg,
-            aes(x = day, y = scaled_total_nicos)) +
+  geom_point(data = tot_counts_new,
+            aes(x = day, y = den_total_nicos_sample_brood), color = publication, size = 0.75) +
+  geom_line(data = total_counts_avg,
+            aes(x = avg_day_sample, y = avg_den_total_nicos_sample_brood)) +
   theme_classic() +
-  labs(y = "Total Nicothoids per One Million Crab Eggs") +
+  labs(y = "Total Nicothoid Density") +
   scale_x_continuous(name = "Development Day",
-                     breaks = seq(0, max(total_df$day), by = 2)) +
+                     breaks = seq(0, max(tot_counts_new$day), by = 2)) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) + 
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
@@ -313,22 +546,22 @@ total_nicos_timeseries
 
 ### iv) Nico Eggs
 ```{r}
-#plot the number of nico eggs over time per one million host eggs
+#plot the denisty of nicothoid eggs per host egg per sample scaled for one million host eggs over time
 nico_egg_timeseries <- ggplot() +
-  geom_point(data = nico_egg_df,
-            aes(x = day, y = scaled_nico_eggs), color = publication, size = 0.75) +
-  geom_line(data = nico_egg_df_avg,
-            aes(x = day, y = scaled_nico_eggs)) +
+  geom_point(data = com_counts_new,
+            aes(x = day, y = den_nico_eggs_sample_brood), color = publication, size = 0.75) +
+  geom_line(data = nico_egg_counts_avg,
+            aes(x = avg_day_sample, y = avg_den_nico_eggs_sample_brood)) +
   theme_classic() +
-  labs(y = "Nicothoid Eggs per One Million Crab Eggs") +
+  labs(y = "Nicothoid Eggs Density") +
   scale_x_continuous(name = "Development Day",
-                     breaks = seq(0, max(nico_egg_df$day), by = 2), 0) +
+                     breaks = seq(0, max(com_counts_new$day), by = 2), 0) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) +
   theme(text = element_text(family = "Times New Roman"),
         plot.title = element_text(hjust = 0.5, face = "bold"),
         axis.title.y = element_text(size = 8, face = "bold"),
         axis.title.x = element_text(size = 8, face = "bold"),
-        axis.text = element_text(size = 5))
+        axis.text = element_text(size = 5)) 
 
 nico_egg_timeseries
 
@@ -345,27 +578,46 @@ publication_timeseries <- ggarrange(total_nicos_timeseries, larvae_timeseries, a
                                              color = "black",
                                              face = "bold",
                                              family = "Times New Roman"),
-                           ncol = 2, nrow = 2)
+                           ncol = 2, nrow = 2) 
 
 #save the combined plot as a png
-ggsave(file = "combined_timeseries.png", path = "figures")
+ggsave(file = "combined_timeseries.png", path = "figures",
+       width = 6.5, height = (2/3*6.5), units = "in")
 
 publication_timeseries
 
 ```
 
 ## B) Table
+
+### i) Dataframe
+```{r}
+#create a dataframe with the with the data for the prevalence, density, and intensity values generated throughout the markdown  
+table_one = data.frame(
+  "Species" = c(rep("C. anthonyi", 2), rep("C. productus", 2), rep("C. anntenarius", 2)), 
+  "Sex" = c("Females", "Males", "Females", "Males", "Females", "Males"),
+  "Prevalence Infested" = c("100% <br> (n = 55)", "83% <br> (n = 12)", "86% <br> (n = 7)", "80% <br> (n = 4)", "71%  <br> (n = 4)", "100% <br> (n = 8)"),
+  "Prevalence with Adults in Egg Mass"= c("100% <br> (n = 55)", NA, "100% <br> (n = 4)", NA, "100% <br> (n = 2)", NA),
+  "Mean Density of Nicothoid Eggs in 1000 Host Eggs" = c("241.5 ± 385.6 <br> (n = 41)", NA, NA, NA, NA, NA),
+  "Mean Density of Larvae in 1000 Host Eggs" = c("*63.6 ± 113.4 <br> (n = 27)", NA, NA, NA, NA, NA),
+  "Mean Density of Adults in 1000 Host Eggs" = c("3.8 ± 6.3 <br> (n = 41)", NA, NA, NA, NA, NA),
+  "Mean Intensity of Larvae in Gill Chamber" = c("14282.9 ± 21755.7 <br> (n = 19)", "235.2 ± 373.3 <br> (n = 10)", "24 ± 31.7 <br> (n = 3)", "42 ± 59.2 <br> (n = 6)", "4608 ± 5578 <br> (n = 4)", "61.7 ± 34.2 <br> (n = 7)"))
+
+
+```
+
+
+### ii) Formatting
 ```{r}
 #assign column names for table one
-colnames(table_one) <- c("Species", "Sex", "Prevalence Infested", "Prevalence with Adults <br> in Egg Mass", "Mean Density of Nicothoid <br> Eggs in Host Eggs", "Mean Density of <br> Larvae in Host Eggs", "Mean Density of Adults <br> in Host Eggs", "Mean Density of <br> Larvae in Gills")
+colnames(table_one) <- c("Species", "Sex", "Prevalence Infested", "Prevalence with Adults <br> in Egg Mass", "Mean Density of Nicothoid <br> Eggs in 1000 Host Eggs", "Mean Density of Larvae <br> in 1000 Host Eggs", "Mean Density of Adults <br> in 1000 Host Eggs", "Mean Intensity of <br> Larvae in Gill Chamber")
 
-#create the table 
+#create the table with kable
 final_table_one <- table_one %>%
   kable(format = "html",
         html_font = "Times New Roman",
-        digits = 0,
+        #digits = 0,
         align = "c",
-        booktabs = T, 
         escape = F) %>%
   kable_styling(bootstrap_options = c("striped","hold_position")) %>%
   column_spec(1, italic = T, extra_css = "border-bottom: 1px solid;") %>%
