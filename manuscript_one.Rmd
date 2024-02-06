@@ -479,7 +479,7 @@ adult_timeseries <- ggplot() +
   geom_line(data = adult_counts_avg,
             aes(x = avg_day_sample, y = avg_den_adults_sample_brood)) +
   theme_classic() +
-  labs(y = "Adult Nicothoid Density") +
+  labs(y = "Adult Nicothoid Intensity") +
   scale_x_continuous(name = "Development Day",
                      breaks = seq(0, max(com_counts_new$day), by = 2), 0) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) + 
@@ -504,7 +504,7 @@ larvae_timeseries <- ggplot() +
   geom_line(data = larvae_counts_avg,
             aes(x = avg_day_sample, y = avg_den_larvae_sample_brood)) +
   theme_classic() +
-  labs(y = "Larval Nicothoid Density") +
+  labs(y = "Larval Nicothoid Intensity") +
   scale_x_continuous(name = "Development Day",
                      breaks = seq(0, max(tot_counts_new$day), by = 2)) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) +
@@ -529,7 +529,7 @@ total_nicos_timeseries <- ggplot() +
   geom_line(data = total_counts_avg,
             aes(x = avg_day_sample, y = avg_den_total_nicos_sample_brood)) +
   theme_classic() +
-  labs(y = "Total Nicothoid Density") +
+  labs(y = "Total Nicothoid Intensity") +
   scale_x_continuous(name = "Development Day",
                      breaks = seq(0, max(tot_counts_new$day), by = 2)) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) + 
@@ -554,7 +554,7 @@ nico_egg_timeseries <- ggplot() +
   geom_line(data = nico_egg_counts_avg,
             aes(x = avg_day_sample, y = avg_den_nico_eggs_sample_brood)) +
   theme_classic() +
-  labs(y = "Nicothoid Eggs Density") +
+  labs(y = "Nicothoid Eggs Intensity") +
   scale_x_continuous(name = "Development Day",
                      breaks = seq(0, max(com_counts_new$day), by = 2), 0) +
   scale_y_continuous(labels = function(y) format(y, scientific = TRUE)) +
