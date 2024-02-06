@@ -16,6 +16,7 @@ library(magrittr)
 library(magick)
 library(patchwork)
 library(kableExtra)
+library(magick)
 library(webshot2)
 library(devtools)
 source("my_functions.R")
@@ -601,7 +602,7 @@ table_one = data.frame(
   "Mean Density of Nicothoid Eggs in 1000 Host Eggs" = c("241.5 ± 385.6 <br> (n = 41)", NA, NA, NA, NA, NA),
   "Mean Density of Larvae in 1000 Host Eggs" = c("*63.6 ± 113.4 <br> (n = 27)", NA, NA, NA, NA, NA),
   "Mean Density of Adults in 1000 Host Eggs" = c("3.8 ± 6.3 <br> (n = 41)", NA, NA, NA, NA, NA),
-  "Mean Intensity of Larvae in Gill Chamber" = c("14282.9 ± 21755.7 <br> (n = 19)", "235.2 ± 373.3 <br> (n = 10)", "24 ± 31.7 <br> (n = 3)", "42 ± 59.2 <br> (n = 6)", "4608 ± 5578 <br> (n = 4)", "61.7 ± 34.2 <br> (n = 7)"))
+  "Mean Intensity of Larvae in Gill Chamber" = c("14282.9 ± 21755.7 <br> (n = 19)", "196 ± 349 <br> (n = 12)", "24 ± 31.7 <br> (n = 3)", "64 ± 63 <br> (n = 4)", "4608 ± 5578 <br> (n = 4)", "61.7 ± 34.2 <br> (n = 7)"))
 
 
 ```
@@ -616,14 +617,14 @@ colnames(table_one) <- c("Species", "Sex", "Prevalence Infested", "Prevalence wi
 final_table_one <- table_one %>%
   kable(format = "html",
         html_font = "Times New Roman",
-        #digits = 0,
+        xdigits = 0,
         align = "c",
         escape = F) %>%
-  kable_styling(bootstrap_options = c("striped","hold_position")) %>%
   column_spec(1, italic = T, extra_css = "border-bottom: 1px solid;") %>%
   row_spec(2, extra_css = "border-bottom: 1px solid;") %>%
   row_spec(4, extra_css = "border-bottom: 1px solid;") %>%
   collapse_rows(columns = 1, valign = "middle") %>%
+  kable_styling(bootstrap_options = c("striped","hold_position")) %>%
   kable_classic_2(full_width = F, html_font = "Times New Roman", font_size = 8) %>%
   save_kable(file = "figures/final_table_one.png",
              zoom = 3)
