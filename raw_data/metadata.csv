@@ -1,4 +1,4 @@
-crab_ID,collection_date,species,carapace_width,abdomen_width,sex,gravid,eds,location,notes,nico_date,first_location,dissected,nico_location,notes,analysis_status
+crab_ID,collection_date,species,carapace_width,abdomen_width,sex,gravid,eds,location,notes,nico_date,first_location,dissected,nico_location,final_notes,analysis_status
 ANT-GAV-001,04/02/2022,cancer_anthonyi,123,37,F,Y,A,gaviota,"- no missing limbs, little bit of rot from ventral right claw",04/05/2022,eggs,yes,both,,
 ANT-GAV-002,04/02/2022,cancer_anthonyi,130,42,F,Y,D,gaviota,"- 4th spine from ventral view on the right has rot. 
 - missing dorsal L1, partial L3, partial R3",04/05/2022,eggs,yes,both,,
@@ -113,7 +113,7 @@ MATS-GAV-003,05/19/2023,cancer_antennarius,134,18,M,N,NA,gaviota,big claws,05/31
 MATS-GAV-004,05/19/2023,cancer_antennarius,152,19,M,N,NA,gaviota,,06/07/2023,gills,yes ,gills,,
 MATS-GAV-005,05/19/2023,cancer_antennarius,126,15,M,N,NA,gaviota,,05/16/2023,gills,yes ,gills,,
 ATS-GAV-003 (post molt),05/24/2023,cancer_antennarius,127,39,F,N,NA,gaviota,measurements after molting ,05/24/2023,gills,yes ,gills,-this is the crab that molted ,
-ANT-SIO-002,05/24/2023,cancer_anthonyi,84.8,28,F,Y,J,scripps,-first crab from San Diego with nicos,05/25/2023,eggs,no,egg_mass,-this is the first crab that has nicos that is not from Santa Barbara that we have examined and confirmed presence of nicos ,
+ANT-SIO-002,05/24/2023,cancer_anthonyi,85,28,F,Y,J,scripps,-first crab from San Diego with nicos,05/25/2023,eggs,no,egg_mass,-this is the first crab that has nicos that is not from Santa Barbara that we have examined and confirmed presence of nicos ,
 MATS-GAV-006,06/09/2023,cancer_antennarius,138,20,M,NA,NA,gaviota,"missing right pincher, crack on carapace near top of bottom right leg",06/30/2023,gils,yes,gills,,
 MATS-GAV-007,06/09/2023,cancer_antennarius,123,16,M,NA,NA,gaviota,"missing left pincher, crack on bottom left leg",NA,NA,no,NA,died before examination,exclude
 MATS-GAV-008,06/09/2023,cancer_antennarius,125,15,M,NA,NA,gaviota,both claws intact,06/14/2023,gills,yes,gills,was dead due to lack of water flow for up to 48 hours before dissected,
