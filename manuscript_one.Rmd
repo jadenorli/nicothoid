@@ -595,14 +595,14 @@ publication_timeseries
 ```{r}
 #create a dataframe with the with the data for the prevalence, density, and intensity values generated throughout the markdown  
 table_one = data.frame(
-  "Species" = c(rep("C. anthonyi", 2), rep("C. productus", 2), rep("C. anntenarius", 2)), 
+  "Species" = c(rep("C. anthonyi", 2), rep("C. productus", 2), rep("C. antennarius", 2)), 
   "Sex" = c("Females", "Males", "Females", "Males", "Females", "Males"),
-  "Prevalence Infested" = c("100% <br> (n = 55)", "83% <br> (n = 12)", "86% <br> (n = 7)", "80% <br> (n = 4)", "71%  <br> (n = 4)", "100% <br> (n = 8)"),
+  "Prevalence Infested" = c("100% <br> (n = 55)", "83% <br> (n = 12)", "86% <br> (n = 7)", "80% <br> (n = 4)", "71%  <br> (n = 7)", "100% <br> (n = 8)"),
   "Prevalence with Adults in Egg Mass"= c("100% <br> (n = 55)", NA, "100% <br> (n = 4)", NA, "100% <br> (n = 2)", NA),
-  "Mean Density of Nicothoid Eggs in 1000 Host Eggs" = c("241.5 ± 385.6 <br> (n = 41)", NA, NA, NA, NA, NA),
-  "Mean Density of Larvae in 1000 Host Eggs" = c("*63.6 ± 113.4 <br> (n = 27)", NA, NA, NA, NA, NA),
-  "Mean Density of Adults in 1000 Host Eggs" = c("3.8 ± 6.3 <br> (n = 41)", NA, NA, NA, NA, NA),
-  "Mean Intensity of Larvae in Gill Chamber" = c("14282.9 ± 21755.7 <br> (n = 19)", "196 ± 349 <br> (n = 12)", "24 ± 31.7 <br> (n = 3)", "64 ± 63 <br> (n = 4)", "4608 ± 5578 <br> (n = 4)", "61.7 ± 34.2 <br> (n = 7)"))
+  "Mean Density of Nicothoid Eggs in 1000 Host Eggs" = c("241 ± 385 <br> (n = 27)", NA, "--", NA, "--", NA),
+  "Mean Density of Larvae in 1000 Host Eggs" = c("*63 ± 113 <br> (n = 27)", NA, "--", NA, "--", NA),
+  "Mean Density of Adults in 1000 Host Eggs" = c("3 ± 6 <br> (n = 41)", NA, "--", NA, "--", NA),
+  "Mean Intensity of Larvae in Gill Chamber" = c("14282 ± 21755 <br> (n = 19)", "196 ± 349 <br> (n = 10)", "24 ± 31 <br> (n = 3)", "64 ± 63 <br> (n = 6)", "4608 ± 5578 <br> (n = 4)", "61 ± 34 <br> (n = 7)"))
 
 
 ```
